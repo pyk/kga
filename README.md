@@ -1,3 +1,3 @@
 # Knapsack + GA
 
-Solving knapsack problem using Genetic Algorithm
+Genetic Algorithm for Knapsack Problem
