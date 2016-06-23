@@ -9,5 +9,5 @@ kga: src/main.c src/knapsack.c
 # Test
 .PHONY: test
 test: src/knapsack.h src/knapsack.c src/knapsack_test.c
-	$(CC) $(CFLAGS) src/knapsack_test.c src/knapsack.c -o bin/kga-test
-	./bin/kga-test
+	$(CC) $(CFLAGS) -g src/knapsack_test.c src/knapsack.c -o bin/kga-test
+	valgrind -q --track-origins=yes --leak-check=yes ./bin/kga-test

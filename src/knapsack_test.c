@@ -19,7 +19,8 @@ main(int argc, char **argv)
         printf("Err: %s\n", strerror(errno));
         return 1;
     }
+    printf("tinggi total: %d\n", tinggi);
     assert(tinggi == 35);
+    printf("TEST PASS\n");
     return 0;
-
 }
