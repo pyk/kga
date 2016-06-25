@@ -93,7 +93,9 @@ main(int argc, char **argv)
         printf("Err: alokasi popawal\n");
         return EXIT_FAILURE;
     }
+    printf("\n");
     ga_bangkit(popawal, ukuranpop, jumlahb);
+    printf("\n");
     printf("Populasi awal:\n");
     for(int i = 0; i < ukuranpop; i++) {
         printf("%d: ", i+1);
@@ -103,17 +105,26 @@ main(int argc, char **argv)
         }
         printf("\n");
     }
-    mfree(popawal);
 
-    /* GA untuk mencari urutan penumpukan barang
-     * pack: input urutan barang, output tinggi suatu packing
-     * Misalkan urutannya: */
-    const int urutan[16] = {6, 8, 3, 4, 2, 1, 16, 15, 13, 12, 14, 10, 11, 5, 9, 7};
-    int tinggi = knapsack_pack(datalb, datatb, urutan, 16);
-    printf("Tinggi susunan barang: %d\n", tinggi);
-    const int urutan2[16] = {3, 4, 2, 1, 6, 16, 15, 13, 8, 12, 14, 10, 11, 5, 9, 7};
-    tinggi = knapsack_pack(datalb, datatb, urutan2, 16);
-    printf("Tinggi susunan barang: %d\n", tinggi);
+    printf("Langkah 2: Evaluasi\n");
+    int hasileval[ukuranpop];
+    for(int i = 0; i < ukuranpop; i++) {
+        int kromosom[jumlahb];
+        for(int j = 0; j < jumlahb; j++) {
+            *(kromosom + j) = mget(popawal, i, j);
+        }
+        int tinggi = knapsack_pack(datalb, datatb, kromosom, jumlahb);
+        printf("Tinggi Kromosom %d: %d\n", i+1, tinggi);
+        *(hasileval + i) = tinggi;
+    }
+
+    printf("\n");
+    printf("Hasil Evaluasi:\n");
+    for(int i = 0; i < ukuranpop; i++) {
+        printf("Kromosom %d: %d\n", i+1, hasileval[i]);
+    }
+
+    mfree(popawal);
     return 0;
 }
 
