@@ -21,6 +21,6 @@ main(int argc, char **argv)
     }
     printf("tinggi total: %d\n", tinggi);
     assert(tinggi == 35);
-    printf("TEST PASS\n");
+    printf("PASS TEST\n");
     return 0;
 }
