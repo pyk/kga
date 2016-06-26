@@ -7,6 +7,8 @@
 #include "matrix.h"
 
 void ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb);
+void ga_eval(matrix_t *bobot, matrix_t *popawal, const int *datatb,
+        const int *datalb, int ukuranpop, int jumlahb);
 
 void
 ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb)
@@ -62,6 +64,22 @@ ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb)
     mfree(ranking);
 }
 
+void
+ga_eval(matrix_t *bobot, matrix_t *popawal, const int *datatb, const int *datalb,
+        int ukuranpop, int jumlahb)
+{
+    for(int i = 0; i < ukuranpop; i++) {
+        int kromosom[jumlahb];
+        for(int j = 0; j < jumlahb; j++) {
+            *(kromosom + j) = mget(popawal, i, j);
+        }
+        int tinggi = knapsack_pack(datalb, datatb, kromosom, jumlahb);
+        assert(tinggi != -1);
+        mset(bobot, i, 0, tinggi);
+    }
+
+}
+
 int
 main(int argc, char **argv)
 {
@@ -107,23 +125,21 @@ main(int argc, char **argv)
     }
 
     printf("Langkah 2: Evaluasi\n");
-    int hasileval[ukuranpop];
+    matrix_t *bobot = minit(ukuranpop, 1);
+    assert(bobot != NULL);
+    ga_eval(bobot, popawal, datatb, datalb, ukuranpop, jumlahb);
+    printf("Hasil Evaluasi:\n");
+    printf("Kromosom\tBobot\n");
     for(int i = 0; i < ukuranpop; i++) {
-        int kromosom[jumlahb];
-        for(int j = 0; j < jumlahb; j++) {
-            *(kromosom + j) = mget(popawal, i, j);
-        }
-        int tinggi = knapsack_pack(datalb, datatb, kromosom, jumlahb);
-        printf("Tinggi Kromosom %d: %d\n", i+1, tinggi);
-        *(hasileval + i) = tinggi;
+        int tinggi = mget(bobot, i, 0);
+        printf("%d\t\t%d\n", i+1, tinggi);
     }
+
 
     printf("\n");
-    printf("Hasil Evaluasi:\n");
-    for(int i = 0; i < ukuranpop; i++) {
-        printf("Kromosom %d: %d\n", i+1, hasileval[i]);
-    }
+    printf("Langkah 3: Seleksi\n");
 
+    mfree(bobot);
     mfree(popawal);
     return 0;
 }
