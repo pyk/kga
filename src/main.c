@@ -2,19 +2,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "knapsack.h"
 #include "matrix.h"
 
-void ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb);
-void ga_eval(matrix_t *bobot, matrix_t *popawal, const int *datatb,
-        const int *datalb, int ukuranpop, int jumlahb);
+matrix_t *ga_bangkit(int ukuranpop, int jumlahb);
+matrix_t *ga_eval(matrix_t *popawal, const int *datatb, const int *datalb,
+        int ukuranpop, int jumlahb);
 
-void
-ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb)
+matrix_t *
+ga_bangkit(int ukuranpop, int jumlahb)
 {
+    /* Populasi awal */
+    matrix_t *popawal = minit(ukuranpop, jumlahb);
+    if(popawal == NULL) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
     /* Langkah 1: membangkitkan matrix ukuranpopxjumlahb dengan nilai random */
     matrixf_t *random = mfinit(ukuranpop, jumlahb);
+    if(random == NULL) {
+        errno = ENOMEM;
+        return NULL;
+    }
     for(int i = 0; i < ukuranpop; i++) {
         for(int j = 0; j < jumlahb; j++) {
             float value = (float)rand()/RAND_MAX;
@@ -32,6 +44,10 @@ ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb)
 
     /* Langkah 2: meranking tiap individu */
     matrix_t *ranking = minit(ukuranpop, jumlahb);
+    if(ranking == NULL) {
+        errno = ENOMEM;
+        return NULL;
+    }
     for(int i = 0; i < ukuranpop; i++) {
         for(int j = 0; j < jumlahb; j++) {
             /* Kita merangking dengan membandingkan nilai dengan yang lain dalam
@@ -41,7 +57,10 @@ ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb)
             for(int k = 0; k < jumlahb; k++) {
                 if(j == k) continue;
                 float compare = mfget(random, i, k);
-                assert(current != compare);
+                if(current == compare) {
+                    errno = ECANCELED;
+                    return NULL;
+                }
                 if(current > compare) {
                     rankingn += 1;
                 }
@@ -62,22 +81,35 @@ ga_bangkit(matrix_t *popawal, int ukuranpop, int jumlahb)
 
     mffree(random);
     mfree(ranking);
+
+    return popawal;
 }
 
-void
-ga_eval(matrix_t *bobot, matrix_t *popawal, const int *datatb, const int *datalb,
-        int ukuranpop, int jumlahb)
+matrix_t *
+ga_eval(matrix_t *popawal, const int *datatb, const int *datalb, int ukuranpop,
+        int jumlahb)
 {
+    /* Alokasi bobot ke memory */
+    matrix_t *bobot = minit(ukuranpop, 1);
+    if(bobot == NULL) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
     for(int i = 0; i < ukuranpop; i++) {
         int kromosom[jumlahb];
         for(int j = 0; j < jumlahb; j++) {
             *(kromosom + j) = mget(popawal, i, j);
         }
         int tinggi = knapsack_pack(datalb, datatb, kromosom, jumlahb);
-        assert(tinggi != -1);
+        if(tinggi < 0) {
+            errno = ECANCELED;
+            return NULL;
+        }
         mset(bobot, i, 0, tinggi);
     }
 
+    return bobot;
 }
 
 int
@@ -106,13 +138,13 @@ main(int argc, char **argv)
     int jumlahb = 16;
     printf("Ukuran populasi: %d\n", ukuranpop);
     printf("Jumlah barang: %d\n", jumlahb);
-    matrix_t *popawal = minit(ukuranpop, jumlahb);
+    printf("\n");
+    matrix_t *popawal = ga_bangkit(ukuranpop, jumlahb);
     if(popawal == NULL) {
-        printf("Err: alokasi popawal\n");
+        printf("Err: Pembangkitan populasi awal gagal\n");
+        if(errno == ECANCELED) printf("Err: Ulangi lagi\n");
         return EXIT_FAILURE;
     }
-    printf("\n");
-    ga_bangkit(popawal, ukuranpop, jumlahb);
     printf("\n");
     printf("Populasi awal:\n");
     for(int i = 0; i < ukuranpop; i++) {
@@ -125,16 +157,18 @@ main(int argc, char **argv)
     }
 
     printf("Langkah 2: Evaluasi\n");
-    matrix_t *bobot = minit(ukuranpop, 1);
-    assert(bobot != NULL);
-    ga_eval(bobot, popawal, datatb, datalb, ukuranpop, jumlahb);
+    matrix_t *bobot = ga_eval(popawal, datatb, datalb, ukuranpop, jumlahb);
+    if(bobot == NULL) {
+        printf("Err: Evaluasi populasi awal gagal\n");
+        return EXIT_FAILURE;
+    }
+
     printf("Hasil Evaluasi:\n");
     printf("Kromosom\tBobot\n");
     for(int i = 0; i < ukuranpop; i++) {
         int tinggi = mget(bobot, i, 0);
         printf("%d\t\t%d\n", i+1, tinggi);
     }
-
 
     printf("\n");
     printf("Langkah 3: Seleksi\n");
