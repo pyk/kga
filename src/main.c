@@ -1,18 +1,18 @@
 /* Main program */
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <errno.h>
 
 #include "knapsack.h"
 #include "matrix.h"
+#include "vector.h"
 
 matrix_t *ga_bangkit(int ukuranpop, int jumlahb);
-matrix_t *ga_eval(matrix_t *popawal, const int *datatb, const int *datalb,
+vector_t *ga_eval(matrix_t *popawal, const int *datatb, const int *datalb,
         int ukuranpop, int jumlahb);
-matrix_t *ga_fitness(matrix_t *bobot, int ukuranpop);
-matrix_t *ga_indukco(const matrixf_t *fitnessk, const float pc, const int ukuranpop);
-matrix_t *ga_indukmu(const matrixf_t *fitnessk, const float pm, const int ukuranpop);
+vectorf_t *ga_fitnessk(vector_t *bobot, int ukuranpop);
+vector_t *ga_indukco(const vectorf_t *fitnessk, const float pc, const int ukuranpop);
+vector_t *ga_indukmu(const vectorf_t *fitnessk, const float pm, const int ukuranpop);
 
 matrix_t *
 ga_bangkit(int ukuranpop, int jumlahb)
@@ -88,12 +88,12 @@ ga_bangkit(int ukuranpop, int jumlahb)
     return popawal;
 }
 
-matrix_t *
+vector_t *
 ga_eval(matrix_t *popawal, const int *datatb, const int *datalb, int ukuranpop,
         int jumlahb)
 {
     /* Alokasi bobot ke memory */
-    matrix_t *bobot = minit(ukuranpop, 1);
+    vector_t *bobot = vinit(ukuranpop);
     if(bobot == NULL) {
         errno = ENOMEM;
         return NULL;
@@ -109,35 +109,35 @@ ga_eval(matrix_t *popawal, const int *datatb, const int *datalb, int ukuranpop,
             errno = ECANCELED;
             return NULL;
         }
-        mset(bobot, i, 0, tinggi);
+        vpush(bobot, tinggi);
     }
 
     return bobot;
 }
 
-matrixf_t *
-ga_fitnessk(matrix_t *bobot, int ukuranpop) {
+vectorf_t *
+ga_fitnessk(vector_t *bobot, int ukuranpop) {
     /* Langkah 1: Menghitung total bobot keseluruhan */
     int totalbobot = 0;
     for(int i = 0; i < ukuranpop; i++) {
-        totalbobot += mget(bobot, i, 0);
+        totalbobot += vget(bobot, i);
     }
 
     /* Langkah 2: Menghitung nilai fitness tiap kromosom */
     int totalfitness = 0;
-    matrix_t *fitness = minit(ukuranpop, 1);
+    vector_t *fitness = vinit(ukuranpop);
     if(fitness == NULL) {
         errno = ENOMEM;
         return NULL;
     }
     for(int i = 0; i < ukuranpop; i++) {
-        int nilai = totalbobot - mget(bobot, i, 0);
-        mset(fitness, i, 0, nilai);
+        int nilai = totalbobot - vget(bobot, i);
+        vpush(fitness, nilai);
         totalfitness += nilai;
     }
 
     /* Langkah 3: menghitung nilai fitness relative */
-    matrixf_t *fitnessr = mfinit(ukuranpop, 1);
+    vectorf_t *fitnessr = vfinit(ukuranpop);
     if(fitnessr == NULL) {
         errno = ENOMEM;
         return NULL;
@@ -145,185 +145,133 @@ ga_fitnessk(matrix_t *bobot, int ukuranpop) {
 
     /* Langkah 4: menghitung nilai fitness kumulatif */
     float totalfitnessk = 0.0;
-    matrixf_t *fitnessk = mfinit(ukuranpop, 1);
+    vectorf_t *fitnessk = vfinit(ukuranpop);
     if(fitnessk == NULL) {
         errno = ENOMEM;
         return NULL;
     }
     for(int i = 0; i < ukuranpop; i++) {
-        float nilai = (float)mget(fitness, i, 0)/totalfitness;
+        float nilai = (float)vget(fitness, i)/totalfitness;
         totalfitnessk += nilai;
-        mfset(fitnessr, i, 0, nilai);
-        mfset(fitnessk, i, 0, totalfitnessk);
+        vfpush(fitnessr, nilai);
+        vfpush(fitnessk, totalfitnessk);
     }
 
     printf("Kromosom\tFitness\t\tF. Relative\tF. Kumulatif\n");
     for(int i = 0; i < ukuranpop; i++) {
-        int f = mget(fitness, i, 0);
-        float fr = mfget(fitnessr, i, 0);
-        float fk = mfget(fitnessk, i, 0);
+        int f = vget(fitness, i);
+        float fr = vfget(fitnessr, i);
+        float fk = vfget(fitnessk, i);
         printf("%d\t\t%d\t\t%f\t%f\n", i+1, f, fr, fk);
     }
 
-    mfree(fitness);
-    mffree(fitnessr);
+    vdestroy(fitness);
+    vfdestroy(fitnessr);
 
     return fitnessk;
 }
 
 /* Mencari calon induk dari nilai fitness kumulatif */
-void
-_ga_caloninduk(matrixf_t *bilacak, matrix_t *calinduk, const matrixf_t *fitnessk,
-        const int ukuranpop)
+vector_t *
+_ga_caloninduk(const vectorf_t *fitnessk, const int ukuranpop)
 {
+    vector_t *calinduki = vinit(ukuranpop);
+    if(calinduki == NULL) {
+        errno = ENOMEM;
+        return NULL;
+    }
+    printf("Random Ke\tF.Kumulatif\tRandom\t\tCalon Induk\n");
+    float fk1 = vfget(fitnessk, 0);
     for(int i = 0; i < ukuranpop; i++) {
-        float nilai = (float)rand()/RAND_MAX;
-        float fk1 = mfget(fitnessk, 0, 0);
-        mfset(bilacak, i, 0, nilai);
-        if(nilai <= fk1) {
-            mset(calinduk, i, 0, 1);
+        float r = (float)rand()/RAND_MAX;
+        float fki = vfget(fitnessk, i);
+        int calinduk = 0;
+        if(r <= fk1) {
+            vpush(calinduki, 1);
+            calinduk = 1;
+            printf("%d\t\t%f\t%f\t%d\n", i+1, fki, r, calinduk);
             continue;
         }
 
         for(int k = 0; k < ukuranpop-1; k++) {
-            float fk = mfget(fitnessk, k, 0);
-            float fks = mfget(fitnessk, k+1, 0);
-            if(fk < nilai && nilai <= fks) {
-                mset(calinduk, i, 0, k+2);
+            float fk = vfget(fitnessk, k);
+            float fks = vfget(fitnessk, k+1);
+            if(fk < r && r <= fks) {
+                vpush(calinduki, k+2);
+                calinduk = k + 2;
+                printf("%d\t\t%f\t%f\t%d\n", i+1, fki, r, calinduk);
                 break;
             }
         }
     }
+
+    return calinduki;
 }
 
 /* Mencari induk dari calon induk dan nilai p */
-void
-_ga_induk(matrixf_t *bilacak, matrix_t *induk, const matrix_t *calinduk,
-        const float p, const int ukuranpop)
+vector_t *
+_ga_induk(const vector_t *calinduki, const float p, const int ukuranpop)
 {
-    for(int i = 0; i < ukuranpop; i++) {
-        float nilai = (float)rand()/RAND_MAX;
-        int cal = mget(calinduk, i, 0);
-        mfset(bilacak, i, 0, nilai);
-        if(nilai < p) {
-            mset(induk, i, 0, cal);
-        } else {
-            mset(induk, i, 0, 0);
-        }
+    vector_t *induki = vinit(ukuranpop);
+    if(induki == NULL) {
+        errno = ENOMEM;
+        return NULL;
     }
 
+    printf("Calon Induk\tRandom\t\tInduk\n");
+    for(int i = 0; i < ukuranpop; i++) {
+        float r = (float)rand()/RAND_MAX;
+        int cali = vget(calinduki, i);
+        int induk = 0;
+        if(r < p) {
+            vpush(induki, cali);
+            induk = cali;
+        }
+        printf("%d\t\t%f\t%d\n", cali, r, induk);
+    }
+
+    /* Jika jumlah induk yang terpilih ganjil, maka kurangi satu */
+    if(induki->currentn % 2 != 0) {
+        vpop(induki);
+    }
+
+    return induki;
 }
 
-matrix_t *
-ga_indukco(const matrixf_t *fitnessk, const float pc, const int ukuranpop)
+vector_t *
+ga_indukco(const vectorf_t *fitnessk, const float pc, const int ukuranpop)
 {
     /* Langkah 1: Memilih calon induk untuk di crossover */
-    matrixf_t *bilacakco = mfinit(ukuranpop, 1);
-    if(bilacakco == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    matrix_t *calindukco = minit(ukuranpop, 1);
-    if(calindukco == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    _ga_caloninduk(bilacakco, calindukco, fitnessk, ukuranpop);
-
     printf("\n");
-    printf("Kromosom\tF.Kumulatif\tRandom\t\tCalon Induk Cross Over\n");
-    for(int i = 0; i < ukuranpop; i++) {
-        float fk = mfget(fitnessk, i, 0);
-        float acak = mfget(bilacakco, i, 0);
-        int cal = mget(calindukco, i, 0);
-        printf("%d\t\t%f\t%f\t%d\n", i+1, fk, acak, cal);
-    }
+    printf("Pemilihan calon induk cross over\n");
+    vector_t *calinduki = _ga_caloninduk(fitnessk, ukuranpop);
 
     /* Langkah 2: Memilih induk berdasarkan nilai Pc */
     printf("\n");
     printf("Pemilihan induk cross over\n");
     printf("Nilai Pc = %f\n", pc);
-    matrixf_t *bilacakcoi = mfinit(ukuranpop, 1);
-    if(bilacakcoi == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    matrix_t *indukcoi = minit(ukuranpop, 1);
-    if(indukcoi == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    _ga_induk(bilacakcoi, indukcoi, calindukco, pc, ukuranpop);
+    vector_t *induki = _ga_induk(calinduki, pc, ukuranpop);
 
-    printf("Calon Induk\tRandom\t\tInduk Cross Over\n");
-    for(int i = 0; i < ukuranpop; i++) {
-        int cal = mget(calindukco, i, 0);
-        float acak = mfget(bilacakcoi, i, 0);
-        int induk = mget(indukcoi, i, 0);
-        printf("%d\t\t%f\t%d\n", cal, acak, induk);
-    }
-
-    mfree(calindukco);
-    mffree(bilacakco);
-    mffree(bilacakcoi);
-
-    return indukcoi;
+    vdestroy(calinduki);
+    return induki;
 }
 
-matrix_t *
-ga_indukmu(const matrixf_t *fitnessk, const float pm, const int ukuranpop)
+vector_t *
+ga_indukmu(const vectorf_t *fitnessk, const float pm, const int ukuranpop)
 {
     /* Langkah 1: Memilih calon induk untuk di mutasi */
-    matrixf_t *bilacakmu = mfinit(ukuranpop, 1);
-    if(bilacakmu == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    matrix_t *calindukmu = minit(ukuranpop, 1);
-    if(calindukmu == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    _ga_caloninduk(bilacakmu, calindukmu, fitnessk, ukuranpop);
-
     printf("\n");
-    printf("Kromosom\tF.Kumulatif\tRandom\t\tCalon Induk Mutasi\n");
-    for(int i = 0; i < ukuranpop; i++) {
-        float fk = mfget(fitnessk, i, 0);
-        float acak = mfget(bilacakmu, i, 0);
-        int cal = mget(calindukmu, i, 0);
-        printf("%d\t\t%f\t%f\t%d\n", i+1, fk, acak, cal);
-    }
+    printf("Pemilihan calon induk mutasi\n");
+    vector_t *calinduki = _ga_caloninduk(fitnessk, ukuranpop);
 
     /* Langkah 2: Memilih induk berdasarkan nilai Pm */
     printf("\n");
     printf("Pemilihan induk mutasi\n");
     printf("Nilai Pm = %f\n", pm);
-    matrixf_t *bilacakmui = mfinit(ukuranpop, 1);
-    if(bilacakmui == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    matrix_t *indukmui = minit(ukuranpop, 1);
-    if(indukmui == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    _ga_induk(bilacakmui, indukmui, calindukmu, pm, ukuranpop);
+    vector_t *induki = _ga_induk(calinduki, pm, ukuranpop);
 
-    printf("Calon Induk\tRandom\t\tInduk Mutasi\n");
-    for(int i = 0; i < ukuranpop; i++) {
-        int cal = mget(calindukmu, i, 0);
-        float acak = mfget(bilacakmui, i, 0);
-        int induk = mget(indukmui, i, 0);
-        printf("%d\t\t%f\t%d\n", cal, acak, induk);
-    }
-
-    mfree(calindukmu);
-    mffree(bilacakmu);
-    mffree(bilacakmui);
-
-    return indukmui;
+    vdestroy(calinduki);
+    return induki;
 }
 
 int
@@ -369,7 +317,7 @@ main(int argc, char **argv)
     }
 
     printf("Langkah 2: Evaluasi\n");
-    matrix_t *bobot = ga_eval(popawal, datatb, datalb, ukuranpop, jumlahb);
+    vector_t *bobot = ga_eval(popawal, datatb, datalb, ukuranpop, jumlahb);
     if(bobot == NULL) {
         printf("Err: Evaluasi populasi awal gagal\n");
         return EXIT_FAILURE;
@@ -378,36 +326,40 @@ main(int argc, char **argv)
     printf("Hasil Evaluasi:\n");
     printf("Kromosom\tBobot\n");
     for(int i = 0; i < ukuranpop; i++) {
-        int tinggi = mget(bobot, i, 0);
+        int tinggi = vget(bobot, i);
         printf("%d\t\t%d\n", i+1, tinggi);
     }
 
     printf("\n");
-    printf("Langkah 3: Seleksi\n");
-    printf("Pemilihan calon induk menggunakan seleksi roda rolet\n");
+    printf("Langkah 3: Seleksi menggunakan Roda Rolet\n");
     printf("Perhitungan nilai fitness\n");
-    matrixf_t *fitnessk = ga_fitnessk(bobot, ukuranpop);
+    vectorf_t *fitnessk = ga_fitnessk(bobot, ukuranpop);
     if(fitnessk == NULL) {
         printf("Err: tidak bisa mengalokasi fitness kumulatif ke memory\n");
         return EXIT_FAILURE;
     }
     float pc = 0.8;
-    matrix_t *indukco = ga_indukco(fitnessk, pc, ukuranpop);
-    if(indukco == NULL) {
+    vector_t *indukcoi = ga_indukco(fitnessk, pc, ukuranpop);
+    if(indukcoi == NULL) {
         printf("Err: tidak bisa mengalokasi induk cross over ke memory\n");
         return EXIT_FAILURE;
     }
     float pm = 0.01;
-    matrix_t *indukmu = ga_indukmu(fitnessk, pm, ukuranpop);
-    if(indukmu == NULL) {
+    vector_t *indukmui = ga_indukmu(fitnessk, pm, ukuranpop);
+    if(indukmui == NULL) {
         printf("Err: tidak bisa mengalokasi induk mutilasi ke memory\n");
         return EXIT_FAILURE;
     }
 
-    mfree(indukmu);
-    mfree(indukco);
-    mffree(fitnessk);
-    mfree(bobot);
+    printf("\n");
+    printf("Total Induk:\n");
+    printf("\tCross Over: %d induk\n", indukcoi->currentn);
+    printf("\tMutasi: %d induk\n", indukmui->currentn);
+
+    vdestroy(indukmui);
+    vdestroy(indukcoi);
+    vfdestroy(fitnessk);
+    vdestroy(bobot);
     mfree(popawal);
     return 0;
 }
