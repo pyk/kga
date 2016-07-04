@@ -29,9 +29,9 @@ mfree(matrix_t *matrix)
 }
 
 int
-mget(const matrix_t *matrix, int rowi, int colj)
+mget(const matrix_t matrix, int rowi, int colj)
 {
-    return *(matrix->data + ((rowi * matrix->colnum) + colj));
+    return *(matrix.data + ((rowi * matrix.colnum) + colj));
 }
 
 void
@@ -66,9 +66,9 @@ mffree(matrixf_t *matrix)
 }
 
 float
-mfget(const matrixf_t *matrix, int rowi, int colj)
+mfget(const matrixf_t matrix, int rowi, int colj)
 {
-    return *(matrix->data + ((rowi * matrix->colnum) + colj));
+    return *(matrix.data + ((rowi * matrix.colnum) + colj));
 }
 
 void
