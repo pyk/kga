@@ -71,10 +71,10 @@ vpop(vector_t *v)
 }
 
 int
-vget(const vector_t *v, const int index)
+vget(const vector_t v, const int index)
 {
-    if(index < 0 || index >= v->currentn) return -1;
-    int value = *(v->data + index);
+    if(index < 0 || index >= v.currentn) return -1;
+    int value = *(v.data + index);
     return value;
 }
 
@@ -146,10 +146,10 @@ vfpop(vectorf_t *v)
 }
 
 float
-vfget(const vectorf_t *v, const int index)
+vfget(const vectorf_t v, const int index)
 {
-    if(index < 0 || index >= v->currentn) return -1;
-    float value = *(v->data + index);
+    if(index < 0 || index >= v.currentn) return -1;
+    float value = *(v.data + index);
     return value;
 }
 
