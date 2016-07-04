@@ -1,24 +1,26 @@
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "vector.h"
 
 /* Integer vector */
 vector_t *
-vinit(const int n)
+vinit(const size_t n)
 {
-    vector_t *v = (vector_t *)malloc(sizeof(*v));
+    vector_t *v = malloc(sizeof *v);
     if(v == NULL) {
         errno = ENOMEM;
         return NULL;
     }
 
-    v->data = (int *)malloc(n * sizeof(int));
-    if(v->data == NULL) {
+    int *data = malloc(n * sizeof *data);
+    if(data == NULL) {
         errno = ENOMEM;
         return NULL;
     }
 
+    v->data = data;
     v->totaln = n;
     v->currentn = 0;
     return v;
@@ -31,16 +33,17 @@ vdestroy(vector_t *v)
     free(v);
 }
 
-vector_t *
-vresize(vector_t *v, size_t size)
+int
+vresize(vector_t *const v, const size_t size)
 {
-    v->data = (int *)realloc(v->data, size * sizeof(int));
-    if(v == NULL) {
+    int *new_data = realloc(v->data, size * sizeof *new_data);
+    if(new_data == NULL) {
         errno = ENOMEM;
-        return NULL;
+        return -1;
     }
+    v->data = new_data;
     v->totaln = size;
-    return v;
+    return v->totaln;
 }
 
 int
@@ -50,8 +53,8 @@ vpush(vector_t *v, const int value)
         *(v->data + v->currentn) = value;
         v->currentn += 1;
     } else {
-        v = vresize(v, v->totaln + 1);
-        if(v == NULL) {
+        int ret = vresize(v, v->totaln + 1);
+        if(ret < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -62,7 +65,7 @@ vpush(vector_t *v, const int value)
 }
 
 void
-vpop(vector_t *v)
+vpop(vector_t *const v)
 {
     if(v->currentn > 0) {
         *(v->data + v->currentn) = 0;
@@ -80,20 +83,21 @@ vget(const vector_t v, const int index)
 
 /* Float vector */
 vectorf_t *
-vfinit(const int n)
+vfinit(const size_t n)
 {
-    vectorf_t *v = (vectorf_t *)malloc(sizeof(*v));
+    vectorf_t *v = malloc(sizeof *v);
     if(v == NULL) {
         errno = ENOMEM;
         return NULL;
     }
 
-    v->data = (float *)malloc(n * sizeof(float));
-    if(v->data == NULL) {
+    float *data = malloc(n * sizeof *data);
+    if(data == NULL) {
         errno = ENOMEM;
         return NULL;
     }
 
+    v->data = data;
     v->totaln = n;
     v->currentn = 0;
     return v;
@@ -106,27 +110,28 @@ vfdestroy(vectorf_t *v)
     free(v);
 }
 
-vectorf_t *
-vfresize(vectorf_t *v, size_t size)
+int
+vfresize(vectorf_t *const v, size_t size)
 {
-    v->data = (float *)realloc(v->data, size * sizeof(float));
-    if(v == NULL) {
+    float *new_data = realloc(v->data, size * sizeof *new_data);
+    if(new_data == NULL) {
         errno = ENOMEM;
-        return NULL;
+        return -1;
     }
+    v->data = new_data;
     v->totaln = size;
-    return v;
+    return v->totaln;
 }
 
 int
-vfpush(vectorf_t *v, const float value)
+vfpush(vectorf_t *const v, const float value)
 {
     if(v->currentn < v->totaln) {
         *(v->data + v->currentn) = value;
         v->currentn += 1;
     } else {
-        v = vfresize(v, v->totaln + 1);
-        if(v == NULL) {
+        int ret = vfresize(v, v->totaln + 1);
+        if(ret < 0) {
             errno = ENOMEM;
             return -1;
         }
@@ -137,7 +142,7 @@ vfpush(vectorf_t *v, const float value)
 }
 
 void
-vfpop(vectorf_t *v)
+vfpop(vectorf_t *const v)
 {
     if(v->currentn > 0) {
         *(v->data + v->currentn) = 0;

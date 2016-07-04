@@ -35,7 +35,7 @@ mget(const matrix_t matrix, int rowi, int colj)
 }
 
 void
-mset(matrix_t *matrix, int rowi, int coli, int value)
+mset(matrix_t *const matrix, int rowi, int coli, int value)
 {
     *(matrix->data + ((rowi * matrix->colnum) + coli)) = value;
 }
@@ -72,7 +72,7 @@ mfget(const matrixf_t matrix, int rowi, int colj)
 }
 
 void
-mfset(matrixf_t *matrix, int rowi, int colj, float value)
+mfset(matrixf_t *const matrix, int rowi, int colj, float value)
 {
     *(matrix->data + ((rowi * matrix->colnum) + colj)) = value;
 }

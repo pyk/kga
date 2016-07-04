@@ -8,12 +8,12 @@ struct vector {
 };
 typedef struct vector vector_t;
 
-vector_t *vinit(const int n);
-vector_t *vresize(vector_t *v, size_t size);
-void     vpop(vector_t *v);
+vector_t *vinit(const size_t n);
+void     vpop(vector_t *const v);
 void     vdestroy(vector_t *v);
-int      vpush(vector_t *v, const int value);
 int      vget(const vector_t v, const int index);
+int      vresize(vector_t *const v, const size_t size);
+int      vpush(vector_t *const v, const int value);
 
 struct vectorf {
     float *data;
@@ -22,12 +22,12 @@ struct vectorf {
 };
 typedef struct vectorf vectorf_t;
 
-vectorf_t *vfinit(const int n);
-vectorf_t *vfresize(vectorf_t *v, size_t size);
-void      vfpop(vectorf_t *v);
+vectorf_t *vfinit(const size_t n);
+void      vfpop(vectorf_t *const v);
 void      vfdestroy(vectorf_t *v);
-int       vfpush(vectorf_t *v, const float value);
 float     vfget(const vectorf_t v, const int index);
+int       vfresize(vectorf_t *const v, const size_t size);
+int       vfpush(vectorf_t *const v, const float value);
 
 #endif
 
